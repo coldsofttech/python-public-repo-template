@@ -75,6 +75,28 @@ def main():
         capture_output=True,
     )
 
+    # "pypi" environment used by release.yml: only version tags may deploy to it.
+    if (Path(__file__).resolve().parent.parent / ".github" / "workflows" / "release.yml").exists():
+        gh(
+            "api", "-X", "PUT", f"repos/{repo}/environments/pypi", "--input", "-",
+            payload={
+                "deployment_branch_policy": {
+                    "protected_branches": False,
+                    "custom_branch_policies": True,
+                }
+            },
+        )
+        policies = gh(
+            "api", f"repos/{repo}/environments/pypi/deployment-branch-policies",
+            "-q", ".branch_policies[].name",
+        ).splitlines()
+        if "v*" not in policies:
+            gh(
+                "api", "-X", "POST",
+                f"repos/{repo}/environments/pypi/deployment-branch-policies",
+                "-f", "name=v*", "-f", "type=tag",
+            )
+
     # Ruleset (skips creation if one named "main" already exists).
     names = gh("api", f"repos/{repo}/rulesets", "-q", ".[].name").splitlines()
     if "main" in names:

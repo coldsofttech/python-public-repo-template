@@ -31,3 +31,26 @@ These override default behavior. Follow them exactly.
 
 7. **README.md**: add/update the README.md from a user perspective rather than technical. For technical
    please create documents within docs/ folder.
+
+# Python conventions
+
+These apply on top of the rules above.
+
+8. **Tooling**: use `uv`, never bare `pip` or `python -m venv`. Add dependencies with `uv add`
+   (`uv add --dev` for dev tools) so `pyproject.toml` and `uv.lock` stay in sync; never edit
+   `uv.lock` by hand. Run tools through `uv run`.
+
+9. **Layout**: source lives in `src/<package>/`, tests in `tests/`. Keep the package typed
+   (`py.typed`). The version lives only in `__version__` in the package `__init__.py`.
+
+10. **Style**: Ruff handles lint and formatting (line length 100); mypy runs in strict mode, so add
+    type hints to all new code. Target Python 3.11+ and don't use syntax or APIs newer than the
+    oldest tested version without checking CI's matrix.
+
+11. **Scoped checks**: when verification is genuinely needed (see rule 2), run only what the change
+    touches, for example `uv run pytest tests/test_x.py`, `uv run ruff check <file>` or
+    `uv run mypy <file>`. Coverage must stay at or above the minimum in `pyproject.toml`. Put slow or end-to-end tests in
+    `tests/integration/`; they are excluded from the default run and only run with `-m integration`.
+
+12. **Dependencies and releases**: keep runtime `dependencies` minimal. Don't change the version
+    or publish; releases are cut by the maintainer through a GitHub release.
