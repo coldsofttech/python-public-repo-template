@@ -32,9 +32,11 @@ These override default behavior. Follow them exactly.
 7. **README.md**: add/update the README.md from a user perspective rather than technical. For technical
    please create documents within docs/ folder.
 
-# Python conventions
+## Python conventions
 
 These apply on top of the rules above.
+
+<!-- markdownlint-disable MD029 -->
 
 8. **Tooling**: use `uv`, never bare `pip` or `python -m venv`. Add dependencies with `uv add`
    (`uv add --dev` for dev tools) so `pyproject.toml` and `uv.lock` stay in sync; never edit
@@ -54,3 +56,5 @@ These apply on top of the rules above.
 
 12. **Dependencies and releases**: keep runtime `dependencies` minimal. Don't change the version
     or publish; releases are cut by the maintainer through a GitHub release.
+
+<!-- markdownlint-enable MD029 -->

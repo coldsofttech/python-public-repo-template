@@ -24,8 +24,7 @@ flowchart LR
 | Local | gitleaks, file hygiene, markdownlint, Ruff, `uv lock` check, mypy, Sweepito scan and cleanup | pre-commit hooks |
 | Pull request | `ci` (lint, unit and integration tests on Python 3.11 to 3.15 on Ubuntu plus 3.11 on Windows and macOS, build), dependency review, CodeQL | GitHub Actions |
 | Repository | Branch ruleset, secret scanning with push protection, Dependabot alerts and updates | GitHub settings |
-| Release | Version check, build, trusted publish to PyPI | `audit.yml` | Weekly, manual, and pull requests that change `uv.lock` | Runs `pip-audit` on the locked dependencies to catch newly published vulnerabilities. |
-| `release.yml` |
+| Release | Version check, build, trusted publish to PyPI | `release.yml` |
 
 ## Source layout
 
@@ -45,6 +44,7 @@ The version lives in one place, `__version__` in the package, and Hatchling read
 | --- | --- | --- |
 | `ci.yml` | Pull request, push to `main` | Runs `lint`, `test`, `integration` and `build` in parallel. A final `ci` job gates on all four and is the only check the ruleset requires. |
 | `dependency-review.yml` | Pull request | Blocks pull requests that add vulnerable dependencies. |
+| `audit.yml` | Weekly, manual, and pull requests that change `uv.lock` | Runs `pip-audit` on the locked dependencies to catch newly published vulnerabilities. |
 | `release.yml` | GitHub release published | Checks the tag matches the version, builds, then publishes to PyPI. |
 | `init.yml` | Manual | One-time placeholder replacement in a repo created from the template. Skipped in the template itself. |
 
