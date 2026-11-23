@@ -4,6 +4,13 @@ name: Init
 # Replaces the template's owner and repository name, then opens a pull request.
 on:
   workflow_dispatch:
+    inputs:
+      pyd_support:
+        description: >-
+          Ship compiled extension modules (.pyd on Windows, .so elsewhere) instead of plain .py
+          sources. Releases then publish platform wheels only, with no sdist.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -30,6 +37,80 @@ jobs:
                 -e "s|coldsofttech/python-public-repo-template|$REPO|g" \
                 -e "s|python-public-repo-template|$NAME|g" \
                 -e "s|coldsofttech|$OWNER|g"
+
+      - name: Enable compiled (.pyd) builds
+        if: inputs.pyd_support
+        run: |
+          cat > setup.py <<'PY'
+          """Build script. With PYD_BUILD=1 every module except __init__.py is compiled with Cython
+          into an extension module (.pyd on Windows, .so elsewhere) and its .py source is left out
+          of the wheel. Without it the package builds as plain Python, so local development,
+          editable installs and coverage are unaffected.
+          """
+
+          import os
+          from pathlib import Path
+
+          from setuptools import Extension, setup
+          from setuptools.command.build_py import build_py as _build_py
+
+          COMPILE = os.environ.get("PYD_BUILD") == "1"
+          SRC = Path("src")
+
+
+          class build_py(_build_py):
+              def build_module(self, module, module_file, package):
+                  if COMPILE and Path(module_file).name != "__init__.py":
+                      return None  # shipped as a compiled module instead
+                  return super().build_module(module, module_file, package)
+
+
+          ext_modules = []
+          if COMPILE:
+              from Cython.Build import cythonize
+
+              ext_modules = cythonize(
+                  [
+                      Extension(".".join(path.relative_to(SRC).with_suffix("").parts), [path.as_posix()])
+                      for path in sorted(SRC.rglob("*.py"))
+                      if path.name != "__init__.py"
+                  ],
+                  build_dir="build/cython",
+                  compiler_directives={"language_level": "3", "emit_code_comments": False},
+              )
+
+          setup(ext_modules=ext_modules, cmdclass={"build_py": build_py})
+          PY
+
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          path = Path("pyproject.toml")
+          text = path.read_text()
+          package = re.search(r'path = "src/(\w+)/__init__\.py"', text).group(1)
+
+          def swap(old, new):
+              global text
+              assert old in text, old
+              text = text.replace(old, new, 1)
+
+          swap('requires = ["hatchling"]', 'requires = ["setuptools>=77", "Cython>=3.1"]')
+          swap('build-backend = "hatchling.build"', 'build-backend = "setuptools.build_meta"')
+          swap(
+              f'[tool.hatch.version]\npath = "src/{package}/__init__.py"\n\n'
+              f'[tool.hatch.build.targets.wheel]\npackages = ["src/{package}"]\n',
+              f'[tool.setuptools.dynamic]\nversion = {{ attr = "{package}.__version__" }}\n\n'
+              '[tool.setuptools.packages.find]\nwhere = ["src"]\n\n'
+              '[tool.setuptools.package-data]\n"*" = ["py.typed"]\n\n'
+              '[tool.cibuildwheel]\n'
+              'build = "cp311-* cp312-* cp313-* cp314-*"\n'
+              'environment = { PYD_BUILD = "1" }\n'
+              'test-requires = "pytest"\n'
+              'test-command = "pytest -o addopts= -m \'not integration\' {project}/tests"\n',
+          )
+          path.write_text(text)
+          PY
 
       - name: Open pull request
         env:
