@@ -22,10 +22,14 @@ runs:
       uses: ./.github/actions/setup-uv
       with:
         sync: "false"
-    # Actions are pinned to version tags on purpose (Dependabot keeps them current), so the
-    # rule that asks for commit SHAs is excluded. The rule about environment values reaching
-    # subprocess is excluded too: scripts/ call the trusted gh CLI with values the maintainer
-    # passes on purpose.
+    # Two rules are excluded on purpose; review them when you add scripts or change how actions
+    # are pinned (see docs/security.md):
+    # - github-actions-mutable-action-tag asks for commit SHAs. Actions are pinned to version
+    #   tags instead, and Dependabot keeps them current.
+    # - dangerous-subprocess-use-tainted-env-args flags environment values reaching a subprocess.
+    #   The only hits are in scripts/, which call the trusted gh CLI with values the maintainer
+    #   passes on purpose. Drop the exclusion if you add code that passes untrusted input to a
+    #   subprocess.
     - name: Run Semgrep
       shell: bash
       env:

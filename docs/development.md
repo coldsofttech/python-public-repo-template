@@ -10,11 +10,17 @@ pyproject.toml         metadata, dependencies and tool configuration
 uv.lock                locked dependencies (commit this file)
 ```
 
-The package is named `example_package`. After creating a repo from this template:
+The package is named `example_package`. After creating a repo from this template, run the **Init** workflow: it replaces the template owner and name and deletes `TEMPLATE_CHANGELOG.md`, which records the template's own changes and is not meant for your repository (your history belongs in `CHANGELOG.md`). Then rename the package. Every place the name appears:
 
-1. Rename `src/example_package/` to your import name.
-2. Update `[tool.hatch.version]`, `[tool.hatch.build.targets.wheel]` and `--cov=` in `pyproject.toml`, and the import in `tests/`.
-3. Set the description in `pyproject.toml`, then run `uv lock`.
+| Where | What to change |
+| --- | --- |
+| `src/example_package/` | Rename the folder to your import name. |
+| `pyproject.toml` | `[tool.hatch.version] path`, `[tool.hatch.build.targets.wheel] packages` and `--cov=` in `addopts`. Add `known-first-party = ["<name>"]` under `[tool.ruff.lint.isort]` if Ruff sorts the import wrongly. |
+| `tests/unit/` and `tests/integration/` | The `import example_package` lines and the name in the subprocess command of `test_installed_package.py`. |
+| `README.md` | The usage example, which imports `example_package`. |
+| `docs/architecture.md` and `docs/guides/python.md` | The layout and the examples. |
+
+Then set the description in `pyproject.toml`, run `uv lock`, and check with `git grep example_package` that nothing is left. The workflows, composite actions and the release check read the name and version from `pyproject.toml`, so they need no edit.
 
 ## Tooling
 
