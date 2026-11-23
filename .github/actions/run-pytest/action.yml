@@ -1,0 +1,26 @@
+name: Run pytest
+description: Set up uv with the locked dependencies and run the unit or the integration tests. Run after checkout.
+
+inputs:
+  python-version:
+    description: Python version.
+    required: true
+  integration:
+    description: Run the integration tests instead of the unit tests ("true" or "false").
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up uv
+      uses: ./.github/actions/setup-uv
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Run unit tests
+      if: inputs.integration != 'true'
+      shell: bash
+      run: uv run --no-sync pytest tests/unit
+    - name: Run integration tests
+      if: inputs.integration == 'true'
+      shell: bash
+      run: uv run --no-sync pytest -m integration tests/integration --no-cov

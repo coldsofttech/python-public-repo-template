@@ -22,7 +22,7 @@ flowchart LR
 | Layer | What runs | Where |
 | --- | --- | --- |
 | Local | gitleaks, file hygiene, markdownlint, Ruff, `uv lock` check, mypy, Sweepito scan and cleanup | pre-commit hooks |
-| Pull request | `ci` (lint, unit and integration tests on Python 3.11 to 3.15 on Ubuntu plus 3.11 on Windows and macOS, build), dependency review, CodeQL | GitHub Actions |
+| Pull request | `ci` (lint, unit and integration tests on Python 3.11 to 3.15 on Ubuntu plus 3.11 on Windows and macOS, build), dependency review, Semgrep, CodeQL | GitHub Actions |
 | Repository | Branch ruleset, secret scanning with push protection, Dependabot alerts and updates | GitHub settings |
 | Release | Version check, build, trusted publish to PyPI | `release.yml` |
 
@@ -30,7 +30,7 @@ flowchart LR
 
 ```text
 src/example_package/   typed package (src layout, py.typed)
-tests/                 pytest unit tests with coverage (80% minimum)
+tests/unit/            pytest unit tests with coverage (80% minimum)
 tests/integration/     tests marked `integration`: skipped by default and in pre-commit, run in CI
 pyproject.toml         metadata, dev dependencies and tool configuration
 uv.lock                locked dependency set, checked by CI with --locked
@@ -42,7 +42,8 @@ The version lives in one place, `__version__` in the package, and Hatchling read
 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
-| `ci.yml` | Pull request, push to `main` | Runs `lint`, `test`, `integration` and `build` in parallel. A final `ci` job gates on all four and is the only check the ruleset requires. |
+| `ci.yml` | Pull request, push to `main` | Calls `ci-package.yml` (lint, test, integration test, build) and `ci-repo.yml` (everything outside `src/` and `tests/`); `changes.yml` limits a pull request to the parts it touches. A final `ci` job gates on all of them and is the only check the ruleset requires. |
+| `security.yml` | Pull request, push to `main`, weekly, manual | Calls `security-package.yml` and `security-repo.yml`: Semgrep, uploaded to code scanning. Not a required check. |
 | `dependency-review.yml` | Pull request | Blocks pull requests that add vulnerable dependencies. |
 | `audit.yml` | Weekly, manual, and pull requests that change `uv.lock` | Runs `pip-audit` on the locked dependencies to catch newly published vulnerabilities. |
 | `release.yml` | GitHub release published | Checks the tag matches the version, builds, then publishes to PyPI. |

@@ -1,0 +1,23 @@
+name: Check the release tag
+description: Fail unless the release tag is the prefix plus the project's version. Run after checkout.
+
+inputs:
+  prefix:
+    description: Tag prefix before the version.
+    default: v
+
+runs:
+  using: composite
+  steps:
+    - name: Set up uv
+      uses: ./.github/actions/setup-uv
+      with:
+        sync: "false"
+    - name: Check the tag matches the project version
+      shell: bash
+      env:
+        TAG: ${{ github.event.release.tag_name }}
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        version="$(uv version --short)"
+        [ "$TAG" = "${PREFIX}${version}" ] || { echo "Tag $TAG does not match ${PREFIX}${version}"; exit 1; }

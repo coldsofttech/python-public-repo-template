@@ -1,0 +1,20 @@
+name: Lint the project
+description: Ruff, mypy and pre-commit. Run after checkout and setup-uv.
+
+runs:
+  using: composite
+  steps:
+    - name: Ruff check
+      shell: bash
+      run: uv run ruff check .
+    - name: Ruff format
+      shell: bash
+      run: uv run ruff format --check .
+    - name: Mypy
+      shell: bash
+      run: uv run mypy
+    - name: Run pre-commit hooks
+      shell: bash
+      env:
+        SKIP: pytest # covered by the test jobs across all Python versions
+      run: uvx pre-commit run --all-files

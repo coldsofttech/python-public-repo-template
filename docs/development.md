@@ -4,7 +4,8 @@
 
 ```text
 src/example_package/   package source (src layout, typed)
-tests/                 pytest tests
+tests/unit/            fast pytest tests
+tests/integration/     end-to-end tests, marked `integration`
 pyproject.toml         metadata, dependencies and tool configuration
 uv.lock                locked dependencies (commit this file)
 ```
@@ -27,7 +28,7 @@ The package is named `example_package`. After creating a repo from this template
 ```bash
 uv sync                    # create .venv and install dev dependencies
 uv run pytest              # unit tests with coverage (skips integration tests)
-uv run pytest -m integration --no-cov   # integration tests only
+uv run pytest -m integration tests/integration --no-cov   # integration tests only
 uv run ruff check .        # lint
 uv run ruff format .       # format
 uv run mypy                # type check
@@ -40,7 +41,7 @@ Tests under `tests/integration/` are marked `integration` automatically by that 
 
 ## Continuous integration
 
-The `ci` workflow runs four jobs: `lint` (pre-commit, including Ruff and mypy), `test` (unit tests), `integration` (tests marked `integration`) and `build` (build and `twine check`). The `test` and `integration` jobs run on Python 3.11 to 3.15 on Ubuntu, and on 3.11 on Windows and macOS. A final `ci` job gates on all four and is the single required check in the branch ruleset.
+The `ci` workflow calls `ci-package.yml` for the library and `ci-repo.yml` for everything outside `src/` and `tests/`. The package runs `package-lint` (Ruff, mypy, pre-commit and a dependency licence check), `package-test` (unit tests), `package-int-test` (tests marked `integration`) and `package-build` (build and `twine check`). The test jobs run on Python 3.11 to 3.15 on Ubuntu, and on 3.11 on Windows and macOS. On pull requests, `changes.yml` skips the parts a change cannot affect. A final `ci` job gates on all of them and is the single required check in the branch ruleset. Shared steps live in `.github/actions/` (`setup-uv`, `lint-python`, `run-pytest`, `audit-python`, `semgrep`, `check-release-tag`, `attach-release-files`). `audit.yml` and `security.yml` (Semgrep, uploaded to code scanning) are separate workflows.
 
 ## Releasing to PyPI
 

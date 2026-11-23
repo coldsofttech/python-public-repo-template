@@ -1,6 +1,12 @@
 name: Release
 
-# Publishes to PyPI when a GitHub release is published, using trusted publishing (no stored tokens).
+# Runs when a GitHub release is published, tagged vX.Y.Z. Builds the package, then publishes it to
+# PyPI (trusted publishing, no stored tokens) once the `pypi` environment is approved
+# (Settings > Environments), and attaches the files, with SHA256 checksums, to the release.
+# The tag must match the version in src/<package>/__init__.py.
+#
+# Publishing is a job of this workflow, not of a called one: PyPI trusted publishing does not
+# support reusable workflows (the token names the called workflow, not release.yml).
 on:
   release:
     types: [published]
@@ -8,35 +14,48 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
 jobs:
   build:
+    name: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
-      - name: Check tag matches package version
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          version="$(uv version --short)"
-          [ "$TAG" = "v$version" ] || { echo "Tag $TAG does not match version $version"; exit 1; }
-      - run: uv build
-      - uses: actions/upload-artifact@v7
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Check the tag
+        uses: ./.github/actions/check-release-tag
+      - name: Build the package
+        run: uv build
+      - name: Check the package metadata
+        run: uvx twine check --strict dist/*
+      - name: Upload the distribution files
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
 
   publish:
+    name: publish (PyPI)
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: pypi
     permissions:
-      id-token: write
+      contents: write # attach files to the release
+      id-token: write # PyPI trusted publishing
     steps:
-      - uses: actions/download-artifact@v8
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Download the distribution files
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Attach the files to the release
+        uses: ./.github/actions/attach-release-files
