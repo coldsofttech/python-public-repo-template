@@ -58,4 +58,4 @@ Tick `pyd_support` when running the **Init** workflow to ship compiled modules i
 - Modules compile to `.pyd` on Windows and `.so` on Linux and macOS, one wheel per OS, architecture and Python version. No sdist is published, so platforms without a wheel cannot install the package.
 - `__init__.py` stays plain Python, so keep logic in other modules. Compiling is obfuscation, not encryption: it raises the effort needed to read the code but does not make it secret.
 - Compilation only happens when `PYD_BUILD=1` (set by cibuildwheel), so `uv sync`, tests and coverage keep running against the plain sources. To try it locally, run `PYD_BUILD=1 uv build --wheel`.
-- Compiled wheels carry no type information, so generate `.pyi` stubs (for example with `stubgen`) if consumers type-check against the package.
+- `.pyi` type stubs are generated with mypy's `stubgen` during the compiled build and shipped beside the binaries, so consumers still get type checking. Stubs expose signatures and docstrings, not implementations.
